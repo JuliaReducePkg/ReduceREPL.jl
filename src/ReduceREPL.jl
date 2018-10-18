@@ -1,5 +1,5 @@
 __precompile__()
-module Reduce
+module ReduceREPL
 using ForceImport, SyntaxTree, LinearAlgebra
 
 #   This file is part of Reduce.jl. It is licensed under the MIT license
@@ -98,11 +98,11 @@ end
 readsp(rs::PSL) = split(read(rs),"\n\n\n")
 
 include("rexpr.jl") # load RExpr features
-include("parser.jl") # load parser generator
+#include("parser.jl") # load parser generator
 include("repl.jl") # load repl features
-include("switch.jl") # load switch operators
+#include("switch.jl") # load switch operators
 
-module Algebra
+#=module Algebra
 using Reduce, LinearAlgebra
 
 include("unary.jl") # load unary operators
@@ -196,7 +196,7 @@ Khinchin's constant, defined as
 \$ \\prod_{n=1}^\\infty \\left( 1 + \\frac{1}{n(n+2)} \\right)^{\\log_2 n}. \$
 """ Reduce.Algebra.khinchin
 
-end
+end=#
 
 export Algebra, @force
 
@@ -325,6 +325,6 @@ try
     (ENV["REDPRE"] == "0") && (preload = false)
 catch
 end
-preload && include("precomp.jl")
+#preload && include("precomp.jl")
 
 end # module

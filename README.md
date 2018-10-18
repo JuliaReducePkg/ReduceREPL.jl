@@ -2,7 +2,9 @@
   <img src="./docs/src/assets/logo.png" alt="Reduce.jl"/>
 </p>
 
-# Reduce.jl
+*Note* this is a minimzed version of the package Reduce.jl to only provide a REPL interface
+
+# ReduceREPL.jl
 
 *Symbolic parser generator for Julia language expressions using REDUCE algebra term rewriter*
 
@@ -32,11 +34,7 @@ Interface for applying symbolic manipulation on [Julia expressions](https://docs
 
 * reduce expressions are `RExpr` objects that can `parse` into julia `Expr` objects and vice versa;
 * interface link communicates and interprets via various reduce output modes using `rcall` method;
-* high-level reduce-julia syntax parser-generator walks arbitrary expression to rewrite mathematical code;
-* import operators from REDUCE using code generation to apply to arbitrary computational expressions;
 * interactive `reduce>` REPL within the Julia terminal window activated by `}` key;
-* extended arithmetic operators `+`,`-`,`*`,`^`,`/`,`//` compute on `Symbol` and `Expr` types;
-* provides hundreds of internal and external methods each supporting many argument types.
 
 Additional packages that depend on Reduce.jl are maintained at [JuliaReducePkg](https://github.com/JuliaReducePkg).
 
@@ -57,107 +55,17 @@ View the documentation [stable](https://chakravala.github.io/Reduce.jl/stable) /
 
 ## Usage
 
-The extended algebraic symbolic expression mode of Reduce.jl is activated with [ForceImport.jl](https://github.com/chakravala/ForceImport.jl) by
-```Julia
-@force using Reduce.Algebra
-```
-This locally extends native Julia functions to `Symbol` and `Expr` types in the current module without extending global methods. Alternatively, the methods it provides can be accesed by prefixing `Algebra.` in front of the method.
-
 Reduce expressions encapsulated into `RExpr` objects can be manipulated within julia using the standard syntax. Create an expression object either using the `RExpr("expression")` string constructor or `R"expression"`. Additionally, arbitrary julia expressions can also be parsed directly using the `RExpr(expr)` constructor. Internally `RExpr` objects are represented as an array that can be accessed by calling `*.str[n]` on the object.
 
-When `Reduce` is used in Julia, standard arithmetic operations are now extended to also work on `Symbol` and `Expr` types.
-```Julia
-julia> 1-1/:n
-:((n - 1) // n)
-
-julia> ans^-:n
-:(1 // ((n - 1) // n) ^ n)
-
-julia> limit(ans,:n,Inf)
-ℯ = 2.7182818284590...
-```
-Julia abstract syntax trees are automatically converted into sequences of reduce statements (using `RExpr` constructor) that are in return parsed into julia `quote` blocks usig `parse`.
-The `rcall` method is used to evaluate any type of expression.
-```Julia
-julia> :(int(sin(im*x+pi)^2-1,x)) |> rcall
-:((1 - (ℯ ^ (4x) + 4 * ℯ ^ (2x) * x)) // (8 * ℯ ^ (2x)))
-```
-However, there are often multiple equivalent ways of achieving the same result:
-```Julia
-julia> int(sin(im*:x+π)^2-1,:x)
-:((1 - (ℯ ^ (4x) + 4 * ℯ ^ (2x) * x)) // (8 * ℯ ^ (2x)))
-```
 The output of `rcall` will be the same as its input type.
 ```Julia
 julia> "int(sin(y)^2, y)" |> rcall
 "( - cos(y)*sin(y) + y)/2"
 ```
-Use `rcall(expr,switches...)` to evaluate `expr` using REDUCE mode `switches` like `:expand`, `:factor`, and `:latex`.
-```Julia
-julia> :((x+im+π)^2; int(1/(1+x^3),x)) |> RExpr
-^(+(x,i,pi),2);
-int(/(1,+(1,^(x,3))),x);
-
-julia> rcall(ans,:horner) |> parse
-quote
-    ((π + 2x) * π + 2 * (π + x) * im + x ^ 2) - 1
-    ((2 * sqrt(3) * atan((2x - 1) // sqrt(3)) - log((x ^ 2 - x) + 1)) + 2 * log(x + 1)) // 6
-end
-```
-Mathematical operators and REDUCE modes can be applied directly to `Expr` and `RExpr` objects.
-```Julia
-julia> Expr(:function,:(fun(a,b)),:(return 4x^4-44x^3+61x^2+270x-525)) |> horner
-:(function fun(a, b)
-        return ((4 * (x - 11) * x + 61) * x + 270) * x - 525
-    end)
-```
-Additionally, REDUCE switch statements can be used as macros to control evaluation of expressions.
-```Julia
-julia> @rounded @factor x^3-2x+1
-:((x + 1.61803398875) * (x - 1) * (x - 0.61803398875))
-```
-Most core features have a corresponding Julia method, but language features that have not been implemented yet can also be directly evaluated with `rcall` using a synergy of julia syntax.
-```Julia
-julia> Expr(:for,:(i=2:34),:(product(i))) |> rcall
-:(@big_str "295232799039604140847618609643520000000")
-```
-The `squash` function provides a way to reduce full program blocks into simplified functions, e.g.
-```Julia
-julia> Expr(:function,:(example(a,b)),quote
-           z = 3
-           target = z * :a * :b
-           z -= 1
-           target += z*(1-:a)*(1-:b)
-       end) |> squash |> factor
-:(function example(a, b)
-        (5b - 2) * a - 2 * (b - 1)
-    end)
-```
-where `z` is a program variable and `:a` and `:b` are symbolic variables.
 
 ### Output mode
- Various output modes are supported. While in the REPL, the default `nat` output mode will be displayed for `RExpr` objects.
-```Julia
-julia> :(sin(x*im) + cos(y*MathConstants.φ)) |> RExpr
-
-     (sqrt(5) + 1)*y
-cos(-----------------) + sinh(x)*i
-            2
-```
+Various output modes are supported. While in the REPL, the default `nat` output mode will be displayed for `RExpr` objects.
 This same output can also be printed to the screen by calling `print(nat(r))` method.
-
-It is possible to direclty convert a julia expression object to LaTeX code using the `latex` method.
-```Julia
-julia> print(@latex sin(x) + cos(y*MathConstants.φ))
-\begin{displaymath}
-\cos \left(\left(\left(\sqrt {5}+1\right) y\right)/2\right)+\sin \,x
-\end{displaymath}
-```
-Internally, this command essentially expands to `rcall(:(sin(x) + cos(y*MathConstants.φ)),:latex) |> print`, which is equivalent.
-
-![latex-equation](https://latex.codecogs.com/svg.latex?\cos&space;\left(\left(\left(\sqrt&space;{5}&plus;1\right)&space;y\right)/2\right)&plus;\sin&space;x)
-
-In `IJulia` the display output of `RExpr` objects will be rendered LaTeX with the `rlfi` REDUCE package in `latex` mode.
 
 ### REPL interface
 Similar to <kbd>?</kbd> help and <kbd>;</kbd> shell modes in Julia, `Reduce` provides a `reduce>` REPL mode by pressing <kbd>shift</kbd>+<kbd>]</kbd> as the first character in the julia terminal prompt. The output is in `nat` mode.

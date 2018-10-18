@@ -476,8 +476,8 @@ end
 rcall(r,switches...) = rcall(r;on=Symbol.([switches...]))
 
 function ==(r::RExpr, s::RExpr)
-    n = expand(r).str
-    m = expand(s).str
+    n = r.str
+    m = s.str
     l=length(n)
     l≠length(m) && (return false)
     b = true
